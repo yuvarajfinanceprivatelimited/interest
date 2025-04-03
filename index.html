@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan EMI Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .calculator-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        .chart-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin-bottom: 30px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .result-container {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+        }
+        .btn-action {
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .total-row {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        #downloadButtons {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Loan Interest Calculator</h1>
+        
+        <div class="calculator-container">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="borrowerName" class="form-label">Borrower Name:</label>
+                        <input type="text" class="form-control" id="borrowerName">
+                    </div>
+                    <div class="mb-3">
+                        <label for="loanAmount" class="form-label">Loan Amount:</label>
+                        <input type="number" class="form-control" id="loanAmount">
+                    </div>
+                    <div class="mb-3">
+                        <label for="loanId" class="form-label">Loan ID:</label>
+                        <input type="text" class="form-control" id="loanId">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label for="loanStartDate" class="form-label">Loan Start Date:</label>
+                        <input type="date" class="form-control" id="loanStartDate">
+                    </div>
+                    <div class="mb-3">
+                        <label for="tenure" class="form-label">Tenure (in Months):</label>
+                        <input type="number" class="form-control" id="tenure">
+                    </div>
+                    <div class="mb-3">
+                        <label for="interestRate" class="form-label">Interest Rate Per Month (%):</label>
+                        <input type="number" step="0.01" class="form-control" id="interestRate">
+                    </div>
+                    <div class="mb-3">
+                        <label for="processingFee" class="form-label">Processing Fee (%):</label>
+                        <input type="number" class="form-control" id="processingFee">
+                    </div>
+                </div>
+            </div>
+            <div class="text-center">
+                <button id="calculateBtn" class="btn btn-primary">Calculate</button>
+            </div>
+        </div>
+
+        <div id="resultsSection" style="display: none;">
+            <div class="result-container">
+                <h3 class="text-center mb-4">Payment Schedule</h3>
+                <div class="table-responsive">
+                    <table class="table table-striped" id="paymentSchedule">
+                        <thead>
+                            <tr>
+                                <th>S.No</th>
+                                <th>Date</th>
+                                <th>Principal</th>
+                                <th>Interest</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scheduleBody">
+                            <!-- Schedule will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Pie chart -->
+            <div class="chart-container">
+                <h3 class="text-center mb-4">Loan Breakdown</h3>
+                <canvas id="loanChart"></canvas>
+            </div>
+
+            <div id="downloadButtons" class="text-center">
+                <button class="btn btn-success" onclick="downloadPDF()">Download PDF</button>
+                <button class="btn btn-info" onclick="downloadExcel()">Download Excel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let loanChartInstance;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default date to today
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            document.getElementById('loanStartDate').value = formattedDate;
+            
+            // Calculate button click handler
+            document.getElementById('calculateBtn').addEventListener('click', calculateEMI);
+        });
+
+        function calculateEMI() {
+            // Get input values
+            const borrowerName = document.getElementById('borrowerName').value;
+            const loanAmount = parseFloat(document.getElementById('loanAmount').value);
+            const loanId = document.getElementById('loanId').value;
+            const loanStartDate = new Date(document.getElementById('loanStartDate').value);
+            const tenure = parseInt(document.getElementById('tenure').value);
+            const interestRatePerMonth = parseFloat(document.getElementById('interestRate').value) / 100;
+            const processingFeePercent = parseFloat(document.getElementById('processingFee').value) / 100;
+            
+            // Validate inputs
+            if (!borrowerName || isNaN(loanAmount) || isNaN(tenure) || isNaN(interestRatePerMonth) || isNaN(processingFeePercent)) {
+                alert('Please fill in all fields with valid values');
+                return;
+            }
+
+            let scheduleHTML = '';
+            let totalInterest = 0;
+            let totalProcessingFee = 0;
+
+            // First month calculation (special case)
+            const firstMonthDays = getDaysInMonth(loanStartDate);  // Get days in the loan start month
+            const dailyInterest = (loanAmount * interestRatePerMonth) / firstMonthDays;  // Interest per day
+            const daysInFirstMonth = firstMonthDays - loanStartDate.getDate() + 1;  // Days remaining in the first month
+            const firstMonthInterest = dailyInterest * daysInFirstMonth;  // Interest for the remaining days of the month
+
+            // Calculate processing fee
+            const processingFee = loanAmount * processingFeePercent;
+            totalProcessingFee += processingFee;
+
+            // Total first month interest including processing fee
+            const totalFirstMonthInterest = firstMonthInterest + processingFee;
+
+            // Add first month to the schedule (set the date as 5th of the next month)
+            const firstMonthDate = new Date(loanStartDate);
+            firstMonthDate.setMonth(firstMonthDate.getMonth() + 1); // Move to next month
+            firstMonthDate.setDate(5);  // Payment is on 5th of February
+
+            scheduleHTML += `
+                <tr>
+                    <td>1</td>
+                    <td>${firstMonthDate.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                    <td>₹${loanAmount.toFixed(2)}</td>
+                    <td>₹${totalFirstMonthInterest.toFixed(2)}</td>
+                </tr>
+            `;
+            totalInterest += totalFirstMonthInterest;
+
+            // Subsequent months (normal monthly payments)
+            for (let i = 2; i <= tenure; i++) {
+                let paymentDate = new Date(loanStartDate);
+                paymentDate.setMonth(paymentDate.getMonth() + i);
+                paymentDate.setDate(5);  // Payment is on 5th of each month
+
+                const regularInterest = loanAmount * interestRatePerMonth;
+                totalInterest += regularInterest;
+
+                scheduleHTML += `
+                    <tr>
+                        <td>${i}</td>
+                        <td>${paymentDate.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                        <td>₹${loanAmount.toFixed(2)}</td>
+                        <td>₹${regularInterest.toFixed(2)}</td>
+                    </tr>
+                `;
+            }
+
+            // Update the schedule table
+            document.getElementById('scheduleBody').innerHTML = scheduleHTML;
+
+            // Prepare chart data
+            const chartData = {
+                labels: ['Principal', 'Interest', 'Processing Fee'],
+                datasets: [{
+                    data: [loanAmount, totalInterest, totalProcessingFee],
+                    backgroundColor: ['#36a2eb', '#ff6384', '#ffcd56'],
+                    hoverBackgroundColor: ['#36a2eb', '#ff6384', '#ffcd56']
+                }]
+            };
+
+            // Destroy previous chart if exists
+            if (loanChartInstance) {
+                loanChartInstance.destroy();
+            }
+
+            // Create new pie chart
+            const ctx = document.getElementById('loanChart').getContext('2d');
+            loanChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return tooltipItem.label + ': ₹' + tooltipItem.raw.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Display results section
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('downloadButtons').style.display = 'block';
+        }
+
+        function getDaysInMonth(date) {
+            // Get the number of days in the given month
+            const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+            const lastDayOfMonth = new Date(nextMonth - 1);
+            return lastDayOfMonth.getDate();  // Return the number of days in the month
+        }
+
+        function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Correct image URL
+    const letterheadImage = "https://raw.githubusercontent.com/yandrapavankarthik/emi-calculator/refs/heads/main/letterhead.jpeg";
+
+    // Add letterhead image to cover full A4 page
+    const pageWidth = doc.internal.pageSize.getWidth();   // A4 page width
+    const pageHeight = doc.internal.pageSize.getHeight(); // A4 page height
+
+    // Add the letterhead image, scaling to fit the full page
+    doc.addImage(letterheadImage, 'PNG', 0, 0, pageWidth, pageHeight); // Full-page image
+
+    // Left side content (borrower details) starting at Y-position 40
+    doc.setFontSize(11);
+    doc.text(`Borrower Name: ${document.getElementById("borrowerName").value}`, 24, 40);
+    doc.text(`Loan ID: ${document.getElementById("loanId").value}`, 24, 50);
+    doc.text(`Loan Amount: ${parseFloat(document.getElementById("loanAmount").value).toFixed(2)}`, 24, 60);
+
+    // Format Start Date as day-month-year
+    const startDate = new Date(document.getElementById("loanStartDate").value);
+    let startDay = startDate.getDate().toString().padStart(2, '0');
+    let startMonth = (startDate.getMonth() + 1).toString().padStart(2, '0');
+    let startYear = startDate.getFullYear();
+    let formattedStartDate = `${startDay}-${startMonth}-${startYear}`;  // day-month-year format
+    doc.text(`Start Date: ${formattedStartDate}`, 24, 70);
+
+    // Calculate and Format End Date as day-month-year
+    const endDate = new Date(document.getElementById("loanStartDate").value);
+    endDate.setMonth(endDate.getMonth() + parseInt(document.getElementById("tenure").value));
+    let endDay = endDate.getDate().toString().padStart(2, '0');
+    let endMonth = (endDate.getMonth() + 1).toString().padStart(2, '0');
+    let endYear = endDate.getFullYear();
+    let formattedEndDate = `${endDay}-${endMonth}-${endYear}`;  // day-month-year format
+    doc.text(`End Date: ${formattedEndDate}`, 24, 80);
+
+    doc.text(`Tenure: ${document.getElementById("tenure").value} months`, 24, 90);
+    doc.text(`Interest Per Month: ${document.getElementById("interestRate").value} %`, 24, 100);
+    
+    // Calculate processing fee
+    const processingFeePercentage = parseFloat(document.getElementById("processingFee").value);
+    doc.text(`Processing Fee: ${processingFeePercentage} % (${(parseFloat(document.getElementById("loanAmount").value) * (processingFeePercentage / 100)).toFixed(2)})`, 24, 110);
+
+    // Check if processing fee percentage is greater than 0
+    if (processingFeePercentage > 0) {
+        // Add a dynamic note based on the processing fee percentage entered by the user
+        doc.setFontSize(8);
+        doc.text(`Note: A processing fee of ${processingFeePercentage}% is added to the first month Interest.`, 24, 120);
+    }
+
+    // Right side - Pie chart with adjusted Y-position for gap
+    const chartCanvas = document.getElementById("loanChart");  // Use the correct canvas element id
+    const chartImg = chartCanvas.toDataURL("image/png");
+    doc.addImage(chartImg, 'PNG', pageWidth - 80, 40, 60, 60); // Position for the chart
+
+    // Add some gap before the table
+    const tableStartY = 130; // Position where the table should start
+    const footerGap = 20;    // Gap between the table and footer to avoid overlap
+
+    // EMI Schedule Table
+    doc.setFontSize(12);
+    doc.text('Repayment Schedule Table:', 25, tableStartY); // Position for table header
+
+    // EMI Schedule Table data
+    const scheduleRows = [];
+    const rows = document.querySelectorAll("#paymentSchedule tbody tr"); // Select all rows from your schedule table
+
+    rows.forEach((row, index) => {
+        const cells = row.getElementsByTagName("td");
+
+        // Ensure that the values are properly formatted before adding them to the table
+        const formattedDate = cells[1].innerText.trim();
+        const formattedPrincipal = parseFloat(cells[2].innerText.replace(/[^\d.-]/g, '')).toFixed(2); // Remove non-numeric characters
+        const formattedInterest = parseFloat(cells[3].innerText.replace(/[^\d.-]/g, '')).toFixed(2); // Remove non-numeric characters
+        
+        const rowData = [
+            index + 1, // S.No
+            formattedDate, // Date
+            formattedPrincipal, // Principal
+            formattedInterest, // Interest
+        ];
+        scheduleRows.push(rowData);
+    });
+
+    // Define column headers for the table
+    const tableColumns = ["S.No", "Date", "Principal", "Interest"];
+
+    // EMI Schedule Table rendering using autoTable
+    doc.autoTable({
+        head: [tableColumns],
+        body: scheduleRows,
+        startY: tableStartY + 10,
+        margin: { top: 10, left: 24, right: 10, bottom: footerGap },
+        styles: {
+            lineWidth: 0.1,
+            cellPadding: 2,
+            fontSize: 10,
+            valign: 'middle',
+            halign: 'center',
+        },
+        columnStyles: {
+            0: { halign: 'center' },
+            1: { halign: 'center' },
+            2: { halign: 'center' },
+            3: { halign: 'center' },
+        },
+        bodyStyles: { halign: 'center' },
+        headStyles: { halign: 'center', fontSize: 12, fontStyle: 'bold' },
+        tableLineColor: [0, 0, 0],
+        tableLineWidth: 0.1,
+        pageBreak: 'auto',
+        tableWidth: 'wrap',
+    });
+
+    // Get the Loan ID and Borrower Name
+    const loanId = document.getElementById("loanId").value.trim();
+    const borrowerName = document.getElementById("borrowerName").value.trim();
+
+    // If Loan ID is provided, use it as the filename; otherwise, fall back to "emi-schedule"
+    const filename = loanId ? `${loanId}-${borrowerName}-Loan EMI Schedule.pdf` : "emi-schedule.pdf";
+
+    // Save the PDF with dynamic filename
+    doc.save(filename);
+}
+
+        function downloadExcel() {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(document.getElementById('paymentSchedule'));
+            XLSX.utils.book_append_sheet(wb, ws, 'Payment Schedule');
+            XLSX.writeFile(wb, 'loan_schedule.xlsx');
+        }
+    </script>
+</body>
+</html>
