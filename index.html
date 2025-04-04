@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,65 +11,204 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
-        body {
-            background-color: #f8f9fa;
+    body {
+        background-color: #f8f9fa;
+        padding: 20px;
+    }
+
+    /* Flexbox styles */
+    .mb-3 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .mb-3 label {
+        text-align: left;
+        width: 35%; /* Adjust width as necessary */
+        padding-right: 10px; /* Space between label and input */
+    }
+
+    .mb-3 input {
+        width: 60%; /* Adjust width to make room for the label */
+    }
+
+    .calculator-container {
+        background-color: white;
+        border-radius: 40px;
+        box-shadow: 0 0 100px rgba(0, 0, 0, 0.5);
+        padding: 30px;
+        margin-bottom: 30px;
+    }
+
+    .chart-container {
+        background-color: white;
+        border-radius: 40px;
+        box-shadow: 0 0 100px rgba(0, 0, 0, 0.5);
+        padding: 30px;
+        margin-bottom: 30px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .container {
+        max-width: 800px;
+        width: 90%; /* Flexible width */
+        margin: 0 auto;
+    }
+
+    .result-container {
+        background-color: white;
+        border-radius: 40px;
+        box-shadow: 0 0 100px rgba(0, 0, 0, 0.5);
+        padding: 30px;
+    }
+
+    .btn-action {
+        margin-right: 10px;
+        margin-bottom: 10px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    th {
+        background-color: #f2f2f2;
+    }
+
+    .total-row {
+        font-weight: bold;
+        background-color: #f8f9fa;
+    }
+
+    #downloadButtons {
+        display: none;
+    }
+      /* Side Menu Styles */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
+            background-color: #343a40;
+            color: white;
+            padding: 20px;
+            transition: left 0.3s;
+            z-index: 1000;
+        }
+
+        .side-menu a {
+            color: white;
+            text-decoration: none;
+            display: block;
+            padding: 10px;
+            margin: 5px 0;
+        }
+
+        .side-menu a:hover {
+            background-color: #575757;
+        }
+
+        /* Button to open the side menu */
+        .menu-toggle-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #343a40;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            z-index: 1100;
+        }
+
+
+    /* Media Queries for Responsiveness */
+    @media (max-width: 992px) {
+        .mb-3 {
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        .mb-3 label {
+            width: 100%;
+            padding-right: 0;
+            text-align: left;
+        }
+
+        .mb-3 input {
+            width: 100%;
+        }
+
+        .calculator-container,
+        .result-container,
+        .chart-container {
             padding: 20px;
         }
-        .calculator-container {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            padding: 25px;
-            margin-bottom: 30px;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            width: 100%; /* Take full width on smaller screens */
+            padding: 10px;
         }
-        .chart-container {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            padding: 25px;
-            margin-bottom: 30px;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
+      {
+            .side-menu {
+                width: 200px;
+            }
         }
+
+        /* Content Display */
+        .content-section {
+            margin-top: 60px;
+        }
+        .content-section h2 {
+            color: #333;
+        }
+
+        .calculator-container,
         .result-container {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            padding: 25px;
+            padding: 15px;
         }
-        .btn-action {
-            margin-right: 10px;
-            margin-bottom: 10px;
+
+        .chart-container {
+            max-width: 100%;
+            padding: 15px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 8px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        .total-row {
-            font-weight: bold;
-            background-color: #f8f9fa;
-        }
-        #downloadButtons {
-            display: none;
-        }
-    </style>
+    }
+</style>
+
 </head>
 <body>
-    <div class="container">
-        <h1 class="text-center mb-4">Loan Interest Calculator</h1>
+  <div class="container">      
         
         <div class="calculator-container">
+   <!-- Side Menu -->
+    <div class="side-menu" id="sideMenu">
+     <br>
+<br>
+        <a href="https://yuvarajfinanceprivatelimited.github.io/emi/" onclick="showContent('emi')">EMI</a>
+        <a href="https://yuvarajfinanceprivatelimited.github.io/interest/" onclick="showContent('interest')">Interest</a>
+    </div>
+
+    <!-- Button to toggle side menu -->
+    <button class="menu-toggle-btn" onclick="toggleSideMenu()">☰</button>
+    
+          <h1 class="text-center mb-4">Loan Interest Calculator</h1>
+          
             <div class="row">
-                <div class="col-md-6">
+                
                     <div class="mb-3">
                         <label for="borrowerName" class="form-label">Borrower Name:</label>
                         <input type="text" class="form-control" id="borrowerName">
@@ -81,8 +221,8 @@
                         <label for="loanId" class="form-label">Loan ID:</label>
                         <input type="text" class="form-control" id="loanId">
                     </div>
-                </div>
-                <div class="col-md-6">
+               
+               
                     <div class="mb-3">
                         <label for="loanStartDate" class="form-label">Loan Start Date:</label>
                         <input type="date" class="form-control" id="loanStartDate">
@@ -99,7 +239,7 @@
                         <label for="processingFee" class="form-label">Processing Fee (%):</label>
                         <input type="number" class="form-control" id="processingFee">
                     </div>
-                </div>
+               
             </div>
             <div class="text-center">
                 <button id="calculateBtn" class="btn btn-primary">Calculate</button>
@@ -128,7 +268,7 @@
 
             <!-- Pie chart -->
             <div class="chart-container">
-                <h3 class="text-center mb-4">Loan Breakdown</h3>
+                <h3 class="text-center mb-4">Pie Chart</h3>
                 <canvas id="loanChart"></canvas>
             </div>
 
@@ -150,6 +290,18 @@
             
             // Calculate button click handler
             document.getElementById('calculateBtn').addEventListener('click', calculateEMI);
+        });
+       function toggleSideMenu() {
+            const sideMenu = document.getElementById('sideMenu');
+            if (sideMenu.style.left === '-250px') {
+                sideMenu.style.left = '0';
+            } else {
+                sideMenu.style.left = '-250px';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Default setup (calculate button event handler)
         });
 
         function calculateEMI() {
@@ -333,7 +485,7 @@
 
     // EMI Schedule Table
     doc.setFontSize(12);
-    doc.text('Repayment Schedule Table:', 25, tableStartY); // Position for table header
+    doc.text('EMI Schedule Table:', 24, tableStartY); // Position for table header
 
     // EMI Schedule Table data
     const scheduleRows = [];
