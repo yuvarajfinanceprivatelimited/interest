@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -335,7 +336,7 @@
             totalProcessingFee += processingFee;
 
             // Total first month interest including processing fee
-            const totalFirstMonthInterest = firstMonthInterest + processingFee;
+            const totalFirstMonthInterest = firstMonthInterest + processingFee + processingFee*0.18;
 
             // Add first month to the schedule (set the date as 5th of the next month)
             const firstMonthDate = new Date(loanStartDate);
@@ -376,7 +377,7 @@
 
             // Prepare chart data
             const chartData = {
-                labels: ['Principal', 'Interest', 'Processing Fee'],
+                labels: ['Principal', 'Interest', 'Processing Fee + GST 18%'],
                 datasets: [{
                     data: [loanAmount, totalInterest, totalProcessingFee],
                     backgroundColor: ['#36a2eb', '#ff6384', '#ffcd56'],
@@ -466,12 +467,13 @@
     // Calculate processing fee
     const processingFeePercentage = parseFloat(document.getElementById("processingFee").value);
     doc.text(`Processing Fee: ${processingFeePercentage} % (${(parseFloat(document.getElementById("loanAmount").value) * (processingFeePercentage / 100)).toFixed(2)})`, 24, 110);
+   
 
     // Check if processing fee percentage is greater than 0
     if (processingFeePercentage > 0) {
         // Add a dynamic note based on the processing fee percentage entered by the user
         doc.setFontSize(8);
-        doc.text(`Note: A processing fee of ${processingFeePercentage}% is added to the first month Interest.`, 24, 120);
+        doc.text(`Note: A processing fee of ${processingFeePercentage}% and GST at 18% on the processing fee will be added to the first month's interest.`, 24, 120);
     }
 
     // Right side - Pie chart with adjusted Y-position for gap
@@ -485,7 +487,7 @@
 
     // EMI Schedule Table
     doc.setFontSize(12);
-    doc.text('EMI Schedule Table:', 24, tableStartY); // Position for table header
+    doc.text('Repayment Schedule Table:', 24, tableStartY); // Position for table header
 
     // EMI Schedule Table data
     const scheduleRows = [];
